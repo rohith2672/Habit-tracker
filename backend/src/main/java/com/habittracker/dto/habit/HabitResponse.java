@@ -14,6 +14,7 @@ public class HabitResponse {
     private String color;
     private String icon;
     private String frequency;
+    private String category;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -12,6 +12,11 @@ export interface AuthResponse {
   userId: number;
 }
 
+export interface Category {
+  id: number;
+  name: string;
+}
+
 export interface Habit {
   id: number;
   name: string;
@@ -19,6 +24,7 @@ export interface Habit {
   color: string;
   icon?: string;
   frequency: string;
+  category?: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -32,6 +38,7 @@ export interface HabitRequest {
   color?: string;
   icon?: string;
   frequency?: string;
+  category?: string;
 }
 
 export interface HabitStats {

@@ -26,6 +26,7 @@ public class HabitService {
 
     public List<HabitResponse> getActiveHabits(User user) {
         return habitRepository.findByUserAndIsActiveTrue(user).stream()
+            .filter(h -> FrequencyUtil.isDueOn(h.getFrequency(), LocalDate.now()))
             .map(h -> toResponse(h, true))
             .collect(Collectors.toList());
     }
@@ -37,7 +38,8 @@ public class HabitService {
             .description(request.getDescription())
             .color(request.getColor() != null ? request.getColor() : "#6366f1")
             .icon(request.getIcon())
-            .frequency(request.getFrequency() != null ? request.getFrequency() : "daily")
+            .frequency(FrequencyUtil.normalise(request.getFrequency()))
+            .category(request.getCategory())
             .isActive(true)
             .build();
 
@@ -56,7 +58,8 @@ public class HabitService {
         if (request.getDescription() != null) habit.setDescription(request.getDescription());
         if (request.getColor() != null) habit.setColor(request.getColor());
         if (request.getIcon() != null) habit.setIcon(request.getIcon());
-        if (request.getFrequency() != null) habit.setFrequency(request.getFrequency());
+        if (request.getFrequency() != null) habit.setFrequency(FrequencyUtil.normalise(request.getFrequency()));
+        habit.setCategory(request.getCategory());
 
         return toResponse(habitRepository.save(habit), true);
     }
@@ -104,6 +107,7 @@ public class HabitService {
             .color(habit.getColor())
             .icon(habit.getIcon())
             .frequency(habit.getFrequency())
+            .category(habit.getCategory())
             .isActive(habit.getIsActive())
             .createdAt(habit.getCreatedAt())
             .updatedAt(habit.getUpdatedAt())

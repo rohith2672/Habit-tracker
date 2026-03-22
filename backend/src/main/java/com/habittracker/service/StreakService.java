@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,27 +21,44 @@ public class StreakService {
         List<HabitEntry> entries = habitEntryRepository.findByHabitOrderByCompletedOnDesc(habit);
         if (entries.isEmpty()) return 0;
 
+        String frequency = habit.getFrequency();
         LocalDate today = LocalDate.now();
-        LocalDate checkDate = entries.get(0).getCompletedOn();
 
-        // If the most recent entry isn't today or yesterday, streak is 0
-        if (checkDate.isBefore(today.minusDays(1))) return 0;
-
-        int streak = 0;
-        LocalDate expected = today;
-
-        // Allow streak to start from today or yesterday
-        if (checkDate.equals(today)) {
-            expected = today;
-        } else {
-            expected = today.minusDays(1);
+        // Find most recent due date <= today
+        LocalDate mostRecentDue = today;
+        if (!FrequencyUtil.isDueOn(frequency, today)) {
+            mostRecentDue = FrequencyUtil.prevDueDate(frequency, today);
         }
 
-        for (HabitEntry entry : entries) {
-            if (entry.getCompletedOn().equals(expected)) {
-                streak++;
-                expected = expected.minusDays(1);
-            } else if (entry.getCompletedOn().isBefore(expected)) {
+        Set<LocalDate> completedDates = entries.stream()
+            .map(HabitEntry::getCompletedOn)
+            .collect(Collectors.toSet());
+
+        // The most recent due date must be completed (or today can be missed — still valid if yesterday due date was done)
+        LocalDate checkDate = entries.get(0).getCompletedOn();
+        if (checkDate.isBefore(mostRecentDue.minusDays(0)) && !checkDate.equals(mostRecentDue)) {
+            // Most recent entry is before the most recent due date
+            // Check: was the previous due date hit?
+            LocalDate prevDue = FrequencyUtil.prevDueDate(frequency, mostRecentDue);
+            if (!completedDates.contains(mostRecentDue) && !completedDates.contains(prevDue)) {
+                return 0;
+            }
+        }
+
+        // Walk backwards counting streak
+        int streak = 0;
+        LocalDate expected = mostRecentDue;
+
+        // Allow streak if today is a due date not yet completed (grace: streak counts if prev due was done)
+        if (!completedDates.contains(expected)) {
+            expected = FrequencyUtil.prevDueDate(frequency, expected);
+        }
+
+        while (completedDates.contains(expected)) {
+            streak++;
+            expected = FrequencyUtil.prevDueDate(frequency, expected);
+            // Safety: don't go back further than habit creation
+            if (habit.getCreatedAt() != null && expected.isBefore(habit.getCreatedAt().toLocalDate())) {
                 break;
             }
         }
@@ -51,7 +70,8 @@ public class StreakService {
         List<HabitEntry> entries = habitEntryRepository.findByHabitOrderByCompletedOnDesc(habit);
         if (entries.isEmpty()) return 0;
 
-        // Sort ascending for easier processing
+        String frequency = habit.getFrequency();
+
         List<LocalDate> dates = entries.stream()
             .map(HabitEntry::getCompletedOn)
             .sorted()
@@ -61,7 +81,8 @@ public class StreakService {
         int current = 1;
 
         for (int i = 1; i < dates.size(); i++) {
-            if (dates.get(i).equals(dates.get(i - 1).plusDays(1))) {
+            LocalDate expectedNext = FrequencyUtil.nextDueDate(frequency, dates.get(i - 1));
+            if (dates.get(i).equals(expectedNext)) {
                 current++;
                 longest = Math.max(longest, current);
             } else {
@@ -76,12 +97,13 @@ public class StreakService {
         List<HabitEntry> entries = habitEntryRepository.findByHabitOrderByCompletedOnDesc(habit);
         if (entries.isEmpty()) return 0.0;
 
+        String frequency = habit.getFrequency();
         LocalDate createdDate = habit.getCreatedAt().toLocalDate();
         LocalDate today = LocalDate.now();
-        long totalDays = createdDate.until(today.plusDays(1), java.time.temporal.ChronoUnit.DAYS);
 
-        if (totalDays <= 0) return 0.0;
+        long totalDueDays = FrequencyUtil.dueDatesInRange(frequency, createdDate, today).size();
+        if (totalDueDays <= 0) return 0.0;
 
-        return Math.min(100.0, (entries.size() * 100.0) / totalDays);
+        return Math.min(100.0, (entries.size() * 100.0) / totalDueDays);
     }
 }
