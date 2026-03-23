@@ -18,4 +18,7 @@ public class HabitRequest {
     private String icon;
 
     private String frequency;
+
+    @Size(max = 100)
+    private String category;
 }
