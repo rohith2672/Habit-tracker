@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { Plus, CheckCircle2, ListChecks, Flame } from 'lucide-react';
 import { useDashboard } from '../hooks/useHabits';
 import { HabitList } from '../components/habits/HabitList';
+import { CompletedSection } from '../components/habits/CompletedSection';
 import { HabitForm } from '../components/habits/HabitForm';
 import { Modal } from '../components/ui/Modal';
 import { Button } from '../components/ui/Button';
@@ -81,7 +82,18 @@ export const DashboardPage: React.FC = () => {
             <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
               Your habits
             </h2>
-            <HabitList habits={data?.habits ?? []} onEdit={handleEdit} />
+            {(() => {
+              const pending = (data?.habits ?? []).filter((h) => !h.completedToday);
+              const completed = (data?.habits ?? []).filter((h) => h.completedToday);
+              return (
+                <>
+                  <HabitList habits={pending} onEdit={handleEdit} />
+                  {completed.length > 0 && (
+                    <CompletedSection habits={completed} onEdit={handleEdit} />
+                  )}
+                </>
+              );
+            })()}
           </div>
         </>
       )}

@@ -19,10 +19,40 @@ export const HabitList: React.FC<HabitListProps> = ({ habits, onEdit }) => {
     );
   }
 
+  // Group by category; null/blank → 'Uncategorized'
+  const grouped = new Map<string, Habit[]>();
+  for (const habit of habits) {
+    const key = habit.category?.trim() || 'Uncategorized';
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(habit);
+  }
+
+  // Named categories alphabetically first, 'Uncategorized' last
+  const namedKeys = Array.from(grouped.keys())
+    .filter((k) => k !== 'Uncategorized')
+    .sort((a, b) => a.localeCompare(b));
+  const allKeys = grouped.has('Uncategorized')
+    ? [...namedKeys, 'Uncategorized']
+    : namedKeys;
+
+  // If all habits are uncategorized, render flat (no heading)
+  const showHeadings = namedKeys.length > 0;
+
   return (
-    <div className="flex flex-col gap-3">
-      {habits.map((habit) => (
-        <HabitCard key={habit.id} habit={habit} onEdit={onEdit} />
+    <div className="flex flex-col gap-4">
+      {allKeys.map((key) => (
+        <div key={key}>
+          {showHeadings && (
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              {key}
+            </p>
+          )}
+          <div className="flex flex-col gap-3">
+            {grouped.get(key)!.map((habit) => (
+              <HabitCard key={habit.id} habit={habit} onEdit={onEdit} />
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );

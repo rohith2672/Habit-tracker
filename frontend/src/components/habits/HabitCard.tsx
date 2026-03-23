@@ -4,6 +4,7 @@ import { Check, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import type { Habit } from '../../api/types';
 import { useCheckIn, useUndoCheckIn, useDeleteHabit } from '../../hooks/useHabits';
 import { StreakBadge } from './StreakBadge';
+import { friendlyFrequency } from '../../utils/frequency';
 
 interface HabitCardProps {
   habit: Habit;
@@ -63,6 +64,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onEdit }) => {
           {habit.description && (
             <p className="text-xs text-gray-500 mt-0.5 truncate">{habit.description}</p>
           )}
+          <p className="text-xs text-gray-600 mt-0.5">{friendlyFrequency(habit.frequency)}</p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
